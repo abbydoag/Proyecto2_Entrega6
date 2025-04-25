@@ -158,7 +158,7 @@ plt.grid(True, linestyle='--', alpha=0.3)
 plt.show()
 
 # =================================================
-# 5. Matrices de confusión y análisis de over/underfitting
+# 5. Valor de la variable respuesta (Según yo se responde arriba. Esto es para después realmente)
 # =================================================
 predictions = {name: model.predict(X_test) for name, model in zip(model_names, best_models)}
 
@@ -185,7 +185,7 @@ for name in model_names:
     plt.ylabel("Real")
     plt.show()
 # =================================================
-# 7. Comparación train vs test
+# 7. Comparación train vs test para ver si está sobreajustado o no
 # =================================================
 print("\nComparación de Accuracy (train vs test):")
 for name, model in zip(model_names, best_models):
