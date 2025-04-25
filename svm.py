@@ -156,3 +156,39 @@ plt.ylabel("Categoria Prediccion", fontsize=12)
 plt.title(f"Resultados de Mejor Modelo (Kernel: {best_model.named_steps["classifier"].kernel})", fontsize=14)
 plt.grid(True, linestyle='--', alpha=0.3)
 plt.show()
+
+# =================================================
+# 5. Matrices de confusión y análisis de over/underfitting
+# =================================================
+predictions = {name: model.predict(X_test) for name, model in zip(model_names, best_models)}
+
+# =================================================
+# 6. Matrices de confusión
+# =================================================
+for name in model_names:
+    cm = confusion_matrix(y_test, predictions[name], labels=categories)
+    print(f"\nMatriz de confusión – Modelo {name}:")
+    print(pd.DataFrame(
+        cm,
+        index=[f"real: {c}" for c in categories],
+        columns=[f"pred: {c}" for c in categories]
+    ))
+    plt.figure(figsize=(6, 4))
+    sb.heatmap(
+        cm, annot=True, fmt="d",
+        xticklabels=categories,
+        yticklabels=categories,
+        cmap="Blues"
+    )
+    plt.title(f"Confusión – {name}")
+    plt.xlabel("Predicción")
+    plt.ylabel("Real")
+    plt.show()
+# =================================================
+# 7. Comparación train vs test
+# =================================================
+print("\nComparación de Accuracy (train vs test):")
+for name, model in zip(model_names, best_models):
+    train_acc = accuracy_score(y_train, model.predict(X_train))
+    test_acc  = accuracy_score(y_test, predictions[name])
+    print(f"{name}: train_acc = {train_acc:.4f}, test_acc = {test_acc:.4f}")
