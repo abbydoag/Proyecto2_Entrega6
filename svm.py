@@ -2,14 +2,20 @@ import pandas as pd
 import numpy as np
 import seaborn as sb
 import matplotlib.pyplot as plt
+import time
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.experimental import enable_iterative_imputer
+from sklearn.experimental import enable_iterative_imputer  # noqa
 from sklearn.impute import SimpleImputer, IterativeImputer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import mean_squared_error, r2_score, classification_report, confusion_matrix, accuracy_score
+from sklearn.metrics import (classification_report, confusion_matrix, accuracy_score, mean_squared_error, r2_score)
 from sklearn.svm import SVC, SVR
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression
 
 plt.style.use("ggplot")
 
@@ -192,3 +198,106 @@ for name, model in zip(model_names, best_models):
     train_acc = accuracy_score(y_train, model.predict(X_train))
     test_acc  = accuracy_score(y_test, predictions[name])
     print(f"{name}: train_acc = {train_acc:.4f}, test_acc = {test_acc:.4f}")
+
+# ================================
+# 8. Estadísticas SVM – efectividad, tiempo y errores
+# ================================
+svm_stats = []
+for name, m in zip(model_names, best_models):
+    t0 = time.time()
+    m.fit(X_train, y_train)
+    train_time = time.time() - t0
+
+    t1 = time.time()
+    y_pred = m.predict(X_test)
+    pred_time = time.time() - t1
+
+    cm = confusion_matrix(y_test, y_pred, labels=categories)
+    mistakes = {categories[i]: int(cm[i].sum() - cm[i, i]) for i in range(3)}
+
+    svm_stats.append({
+        "Model": name,
+        "Accuracy": accuracy_score(y_test, y_pred),
+        "TrainTime_s": train_time,
+        "PredTime_s": pred_time,
+        "Mistakes": mistakes
+    })
+
+print("\n=== Inciso 8: Estadísticas SVM ===")
+print(pd.DataFrame(svm_stats))
+
+# ================================
+# 9. Comparación con otros clasificadores
+# ================================
+other_classifiers = {
+    "DecisionTree": Pipeline([("pre", preprocessor),
+                              ("clf", DecisionTreeClassifier(random_state=42))]),
+    "RandomForest": Pipeline([("pre", preprocessor),
+                              ("clf", RandomForestClassifier(random_state=42))]),
+    "NaiveBayes":   Pipeline([("pre", preprocessor),
+                              ("clf", GaussianNB())]),
+    "KNN":          Pipeline([("pre", preprocessor),
+                              ("clf", KNeighborsClassifier())]),
+    "Logistic":     Pipeline([("pre", preprocessor),
+                              ("clf", LogisticRegression(max_iter=1000, random_state=42))])
+}
+other_stats = []
+for name, pipe in other_classifiers.items():
+    t0 = time.time()
+    pipe.fit(X_train, y_train)
+    tt = time.time() - t0
+
+    t1 = time.time()
+    y_pred = pipe.predict(X_test)
+    pt = time.time() - t1
+
+    other_stats.append({
+        "Model": name,
+        "Accuracy": accuracy_score(y_test, y_pred),
+        "TrainTime_s": tt,
+        "PredTime_s": pt
+    })
+
+print("\n=== Inciso 9: Otros clasificadores ===")
+print(pd.DataFrame(other_stats))
+
+# ================================
+# 10. Modelo de regresión sobre SalePrice. Wooo
+# ================================
+y_reg = df_clean["SalePrice"]
+X_tr_reg, X_te_reg, y_tr_reg, y_te_reg = train_test_split(
+    X, y_reg, test_size=0.3, random_state=42
+)
+
+reg_pipeline = Pipeline([
+    ("preprocessor", preprocessor),
+    ("regressor", SVR())
+])
+param_grid_reg = {
+    "regressor__kernel": ["linear", "rbf"],
+    "regressor__C": [0.1, 1, 10],
+    "regressor__gamma": ["scale", "auto"]
+}
+
+grid_reg = GridSearchCV(
+    reg_pipeline,
+    param_grid_reg,
+    cv=5,
+    scoring="neg_root_mean_squared_error",
+    verbose=1,
+    n_jobs=-1
+)
+grid_reg.fit(X_tr_reg, y_tr_reg)
+
+best_reg = grid_reg.best_estimator_
+y_pred_reg = best_reg.predict(X_te_reg)
+
+# Cálculo manual de RMSE, porque ya ni modo
+mse = mean_squared_error(y_te_reg, y_pred_reg)
+rmse = np.sqrt(mse)
+r2   = r2_score(y_te_reg, y_pred_reg)
+
+print("\n=== Inciso 10: SVR Regresión ===")
+print("Mejores parámetros:", grid_reg.best_params_)
+print(f"RMSE: {rmse:.2f}")
+print(f"R²:    {r2:.4f}")
