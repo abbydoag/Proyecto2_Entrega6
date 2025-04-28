@@ -9,7 +9,7 @@ from sklearn.impute import SimpleImputer, IterativeImputer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import (classification_report, confusion_matrix, accuracy_score, mean_squared_error, r2_score)
+from sklearn.metrics import (classification_report, confusion_matrix, accuracy_score, mean_absolute_error, mean_squared_error, r2_score)
 from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -296,8 +296,10 @@ y_pred_reg = best_reg.predict(X_te_reg)
 mse = mean_squared_error(y_te_reg, y_pred_reg)
 rmse = np.sqrt(mse)
 r2   = r2_score(y_te_reg, y_pred_reg)
+mae = mean_absolute_error(y_te_reg, y_pred_reg) 
 
 print("\n=== Inciso 10: SVR Regresión ===")
 print("Mejores parámetros:", grid_reg.best_params_)
 print(f"RMSE: {rmse:.2f}")
+print(f"MAE: {mae:.2f}") 
 print(f"R²:    {r2:.4f}")
